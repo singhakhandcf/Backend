@@ -14,6 +14,12 @@ app.use(express.urlencoded({extended: true, limit: "16kb"}))
 app.use(express.static("public"))
 app.use(cookieParser())
 
+app.get('/getme',(req,res)=>{
 
+   res.send({
+        name: 'Rohit',
+        age: 21
+    })
+})
 
 export { app }
