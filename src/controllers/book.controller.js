@@ -2,28 +2,40 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import Book from "../models/book.model.js";
-import { uploadOnCloudinary,deleteFromCloudinary } from "../utils/cloudinary.config.js";
-
-
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.config.js";
+import { User } from "../models/user.model.js";
 
 // Create Book
 
-
 const createBook = asyncHandler(async (req, res) => {
   try {
-    const { title, description, author,  genre } = req.body;
+    const { title, description, author, genre } = req.body;
     const { path } = req.file;
-    if ([title, description, author, genre].some(field => !field)) {
-        throw new ApiError(400, "All fields are required");
+    if ([title, description, author, genre].some((field) => !field)) {
+      throw new ApiError(400, "All fields are required");
     }
     const result = await uploadOnCloudinary(path);
     if (!result) {
-        throw new ApiError(500, "Error uploading file to Cloudinary");
-      }
-    const book = await Book.create({ title, description, author, coverImage: result.url, genre });
-    res.status(201).json(new ApiResponse(201, book, "Book created successfully"));
+      throw new ApiError(500, "Error uploading file to Cloudinary");
+    }
+    const book = await Book.create({
+      title,
+      description,
+      author,
+      coverImage: result.url,
+      genre,
+    });
+    res
+      .status(201)
+      .json(new ApiResponse(201, book, "Book created successfully"));
   } catch (error) {
-    throw new ApiError(error.statusCode || 500, error.message || "Server Error");
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
   }
 });
 
@@ -38,26 +50,38 @@ const deleteBook = asyncHandler(async (req, res) => {
     }
     await deleteFromCloudinary(book.coverImage);
     await Book.findByIdAndDelete(id);
-    res.status(200).json(new ApiResponse(200, book, "Book deleted successfully"));
+    res
+      .status(200)
+      .json(new ApiResponse(200, book, "Book deleted successfully"));
   } catch (error) {
-    throw new ApiError(error.statusCode || 500, error.message || "Server Error");
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
   }
 });
 // Get All Books (Paginated & Search)
 const getAllBooks = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 2, search = "" } = req.query;
+    const { page = 1, limit = 10, search = "" } = req.query;
     const query = search ? { title: { $regex: search, $options: "i" } } : {};
 
     const books = await Book.find(query)
+      .select("-comments -description")
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
+    const total = Math.ceil((await Book.countDocuments(query)) / limit);
 
-    const total = await Book.countDocuments(query);
-
-    res.status(200).json(new ApiResponse(200, { books, total }, "Books retrieved successfully"));
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, { books, total }, "Books retrieved successfully")
+      );
   } catch (error) {
-    throw new ApiError(error.statusCode || 500, error.message || "Server Error");
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
   }
 });
 
@@ -65,14 +89,19 @@ const getAllBooks = asyncHandler(async (req, res) => {
 const getBookById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-    const book = await Book.findById(id);
+    const book = await Book.findById(id).populate("comments.user", "username");
     if (!book) {
       throw new ApiError(404, "Book not found");
     }
 
-    res.status(200).json(new ApiResponse(200, book, "Book retrieved successfully"));
+    res
+      .status(200)
+      .json(new ApiResponse(200, book, "Book retrieved successfully"));
   } catch (error) {
-    throw new ApiError(error.statusCode || 500, error.message || "Server Error");
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
   }
 });
 
@@ -91,10 +120,108 @@ const updateBook = asyncHandler(async (req, res) => {
       throw new ApiError(404, "Book not found");
     }
 
-    res.status(200).json(new ApiResponse(200, book, "Book updated successfully"));
+    res
+      .status(200)
+      .json(new ApiResponse(200, book, "Book updated successfully"));
   } catch (error) {
-    throw new ApiError(error.statusCode || 500, error.message || "Server Error");
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
   }
 });
 
-export { createBook, deleteBook, getAllBooks, getBookById, updateBook };
+// add comment
+const addComment = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    if (!content) {
+      throw new ApiError(400, "Comment content is required");
+    }
+
+    let book = await Book.findById(id);
+    if (!book) {
+      throw new ApiError(404, "Book not found");
+    }
+
+    book.comments.push({ user: userId, content });
+    await book.save();
+    book = await Book.findById(id).populate("comments.user","username")
+    res
+      .status(201)
+      .json(new ApiResponse(201, book, "Comment added successfully"));
+  } catch (error) {
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
+  }
+});
+
+const toggleWishlist = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const book = await Book.findById(id);
+    if (!book) {
+      throw new ApiError(404, "Book not found");
+    }
+
+    const user = await User.findById(userId);
+    console.log(user);
+    const isWishlisted = user?.wishlist?.includes(id);
+
+    if (isWishlisted) {
+      user.wishlist.pull(id);
+    } else {
+      user.wishlist.push(id);
+    }
+
+    await user.save();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, user, "Wishlist updated successfully"));
+  } catch (error) {
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
+  }
+});
+const getMyWishlist = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).populate("wishlist");
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, user.wishlist, "Wishlist fetched successfully")
+      );
+  } catch (error) {
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Server Error"
+    );
+  }
+});
+
+export {
+  createBook,
+  getMyWishlist,
+  deleteBook,
+  getAllBooks,
+  getBookById,
+  updateBook,
+  addComment,
+  toggleWishlist,
+};

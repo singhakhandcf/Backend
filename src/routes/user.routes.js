@@ -6,7 +6,6 @@ import {
   refreshAccessToken,
   changeCurrentPassword,
   getCurrentUser,
-  updateSocials,
   updateAccountDetails
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -20,7 +19,6 @@ router.route("/refresh-token").post(refreshAccessToken);
 router.route("/change-password").post(verifyJWT, changeCurrentPassword);
 router.route("/current-user").get(verifyJWT, getCurrentUser);
 router.route("/update-account").patch(verifyJWT, updateAccountDetails)
-router.route("/socials").post(verifyJWT,updateSocials);
 
 
 export default router;

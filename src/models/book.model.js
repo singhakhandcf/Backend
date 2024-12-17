@@ -1,5 +1,18 @@
 import mongoose from "mongoose";
-
+const commentSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
 const bookSchema = new mongoose.Schema(
   {
     title: {
@@ -20,6 +33,7 @@ const bookSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    comments: [commentSchema],
     genre: {
       type: String,
       required: true,

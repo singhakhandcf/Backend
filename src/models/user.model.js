@@ -25,10 +25,6 @@ const userSchema = new Schema(
       trim: true,
       index: true,
     },
-    bio: {
-      type: String,
-      default: "",
-    },
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -36,21 +32,17 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
-    profilePicture: {
-      type: String,
-      default: "",
+    isAdmin: {
+      type: Boolean,
+      default:false
     },
-    coverPicture: {
-      type: String,
-      default: "",
-    },
-    teams: [{ type: mongoose.Schema.Types.ObjectId, ref: "Team" }],
-    socials: {
-      github: { type: String, trim: true, default: "" },
-      linkedin: { type: String, trim: true, default: "" },
-      facebook: { type: String, trim: true, default: "" },
-      behance: { type: String, trim: true, default: "" },
-    }
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Book",
+      },
+    ]
+
   },
   {
     timestamps: true,

@@ -94,14 +94,14 @@ const loginUser = asyncHandler(async (req, res) => {
   ); // 10 days
 
   const accessOptions = {
-    httpOnly: true,
+    // httpOnly: true,
     secure: true,
     sameSite: "None",
     expires: accessTokenExpiryDate,
   };
 
   const refreshOptions = {
-    httpOnly: true,
+    // httpOnly: true,
     secure: true,
     sameSite: "None",
     expires: refreshTokenExpiryDate,
@@ -236,27 +236,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 });
 
 
-const updateSocials = asyncHandler(async (req, res) => {
-  const { github, linkedin, facebook, behance } = req.body;
-  try {
-    const user = await User.findById(req.user._id);
-    user.socials = {
-      github: github || user.socials.github,
-      linkedin: linkedin || user.socials.linkedin,
-      facebook: facebook || user.socials.facebook,
-      behance: behance || user.socials.behance,
-    };
 
-    await user.save();
-
-    res.status(200).json({
-      message: "Socials updated successfully",
-      data: user,
-    });
-  } catch (error) {
-    throw new ApiError(500, error.message || "Failed to update socials");
-  }
-});
 
 export {
   registerUser,
@@ -266,5 +246,5 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateAccountDetails,
-  updateSocials,
+
 };

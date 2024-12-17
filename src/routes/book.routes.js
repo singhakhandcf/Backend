@@ -7,14 +7,20 @@ import {
   getAllBooks,
   getBookById,
   updateBook,
+  addComment,
+  toggleWishlist,
+  getMyWishlist,
 } from "../controllers/book.controller.js";
 
 const router = Router();
-router.route("/").post(verifyJWT,upload.single('coverImage'), createBook);
-//router.route("/").post(verifyJWT, createBook);
-router.route("/").get(verifyJWT,getAllBooks);
-router.route("/:id").get(verifyJWT,getBookById)
-router.route("/update/:id").patch(verifyJWT, updateBook)
+
+router.route("/").post(verifyJWT, upload.single("coverImage"), createBook);
+router.route("/:id/comment").post(verifyJWT, addComment);
+router.route("/").get(verifyJWT, getAllBooks);
+router.route("/toggleWishlist/:id").get(verifyJWT, toggleWishlist);
+router.route("/wishlist").get(verifyJWT, getMyWishlist);
+router.route("/:id").get(verifyJWT, getBookById);
+router.route("/update/:id").patch(verifyJWT, updateBook);
 router.route("/delete/:id").delete(verifyJWT, deleteBook);
 
 export default router;
