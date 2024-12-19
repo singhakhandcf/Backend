@@ -20,7 +20,7 @@ router.route("/").get(verifyJWT, getAllBooks);
 router.route("/toggleWishlist/:id").get(verifyJWT, toggleWishlist);
 router.route("/wishlist").get(verifyJWT, getMyWishlist);
 router.route("/:id").get(verifyJWT, getBookById);
-router.route("/update/:id").patch(verifyJWT, updateBook);
+router.route("/update/:id").patch(verifyJWT,upload.single("coverImage"), updateBook);
 router.route("/delete/:id").delete(verifyJWT, deleteBook);
 
 export default router;

@@ -1,3 +1,4 @@
+
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
@@ -94,14 +95,14 @@ const loginUser = asyncHandler(async (req, res) => {
   ); // 10 days
 
   const accessOptions = {
-    // httpOnly: true,
+    httpOnly: true,
     secure: true,
     sameSite: "None",
     expires: accessTokenExpiryDate,
   };
 
   const refreshOptions = {
-    // httpOnly: true,
+    httpOnly: true,
     secure: true,
     sameSite: "None",
     expires: refreshTokenExpiryDate,
@@ -246,5 +247,5 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateAccountDetails,
-
+  
 };

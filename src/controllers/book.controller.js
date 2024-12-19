@@ -32,6 +32,7 @@ const createBook = asyncHandler(async (req, res) => {
       .status(201)
       .json(new ApiResponse(201, book, "Book created successfully"));
   } catch (error) {
+    console.log(error);
     throw new ApiError(
       error.statusCode || 500,
       error.message || "Server Error"
@@ -60,22 +61,38 @@ const deleteBook = asyncHandler(async (req, res) => {
     );
   }
 });
-// Get All Books (Paginated & Search)
+
 const getAllBooks = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "" } = req.query;
-    const query = search ? { title: { $regex: search, $options: "i" } } : {};
+    const { page = 1, limit = 10, search = "" , genre="" } = req.query;
+    const query = {
+      ...(search && {
+        $or: [
+          { title: { $regex: search, $options: "i" } },
+          { author: { $regex: search, $options: "i" } },
+        ],
+      }),
+      ...(genre && {
+        genre: { $regex: genre.split(" ").join("|"), $options: "i" },
+      }),
+    };
 
     const books = await Book.find(query)
       .select("-comments -description")
       .skip((page - 1) * limit)
-      .limit(parseInt(limit));
-    const total = Math.ceil((await Book.countDocuments(query)) / limit);
+      .limit(Number(limit));
 
-    res
+    const totalBooks = await Book.countDocuments(query);
+    const totalPages = Math.ceil(totalBooks / limit);
+
+    return res
       .status(200)
       .json(
-        new ApiResponse(200, { books, total }, "Books retrieved successfully")
+        new ApiResponse(
+          200,
+          { books, totalBooks, totalPages },
+          "Books retrieved successfully"
+        )
       );
   } catch (error) {
     throw new ApiError(
@@ -110,6 +127,18 @@ const updateBook = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+    if (req.file) {
+      const book = await Book.findById(id);
+      const deleteResult = await deleteFromCloudinary(book.coverImage);
+      if (deleteResult) {
+        throw new ApiError(500, "Error uploading file to Cloudinary");
+      }
+      const uploadResult = await uploadOnCloudinary(req.file.path);
+      if (!uploadResult) {
+        throw new ApiError(500, "Error uploading file to Cloudinary");
+      }
+      updates.coverImage = uploadResult.url;
+    }
 
     const book = await Book.findByIdAndUpdate(id, updates, {
       new: true,
@@ -149,7 +178,7 @@ const addComment = asyncHandler(async (req, res) => {
 
     book.comments.push({ user: userId, content });
     await book.save();
-    book = await Book.findById(id).populate("comments.user","username")
+    book = await Book.findById(id).populate("comments.user", "username");
     res
       .status(201)
       .json(new ApiResponse(201, book, "Comment added successfully"));
