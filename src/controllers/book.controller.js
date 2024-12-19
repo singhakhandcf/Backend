@@ -17,6 +17,12 @@ const createBook = asyncHandler(async (req, res) => {
     if ([title, description, author, genre].some((field) => !field)) {
       throw new ApiError(400, "All fields are required");
     }
+
+    const existingBook =await Book.findOne({title,author});
+    if(existingBook){
+      throw new ApiError(409,"Book with the same title and author already exists");
+    }
+
     const result = await uploadOnCloudinary(path);
     if (!result) {
       throw new ApiError(500, "Error uploading file to Cloudinary");
